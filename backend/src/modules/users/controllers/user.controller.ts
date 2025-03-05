@@ -53,7 +53,7 @@ export class UserController {
   @Post('logout')
   LogoutUser(@Res({ passthrough: true }) response: Response): void {
     response.clearCookie('id');
-    response.redirect('/');
+    response.redirect('localhost:5173/profile');
   }
 
   @Get('me')

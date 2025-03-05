@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label.tsx";
@@ -17,8 +17,11 @@ const Login = () => {
     },
     onSubmit: async ({ value }) => {
       const res = await registerUser(value);
-      if (!res.ok) return toast("Bad request");
+      if (!res) return toast("Bad request");
       formRegister.reset();
+      redirect({
+        to: "/",
+      });
       return toast("Successfully registered");
     },
   });
@@ -30,9 +33,13 @@ const Login = () => {
     },
     onSubmit: async ({ value }) => {
       const res = await loginUser(value);
-      if (!res.ok) return toast("Bad request");
+      if (res.message !== "login successful") return toast("Bad request");
       formLogin.reset();
-      return toast("Login successful");
+      toast("Login successful");
+      return redirect({
+        to: "",
+        reloadDocument: true,
+      });
     },
   });
   return (

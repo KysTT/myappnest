@@ -1,13 +1,26 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@modules/database/services/prisma.service';
-import { CartItem, Product } from '@prisma/client';
+import { Product } from '@prisma/client';
+import { type CartItems } from '@modules/store/types/store-types';
 
 @Injectable()
 export class StoreRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findProducts(): Promise<Product[]> {
-    return this.prisma.product.findMany();
+  async findProducts(
+    page: number,
+    limit: number,
+  ): Promise<{ products: Product[]; total: number }> {
+    const skip = (page - 1) * limit;
+    const [products, total] = await Promise.all([
+      this.prisma.product.findMany({
+        skip,
+        take: limit,
+        orderBy: { id: 'asc' },
+      }),
+      this.prisma.product.count(),
+    ]);
+    return { products, total };
   }
 
   async findProductById(product_id: number): Promise<Product | null> {
@@ -30,30 +43,43 @@ export class StoreRepository {
     return userCart;
   }
 
-  async resolveCartItems(
-    cartItems: CartItem[],
-    userCart: { id: number; user_id: number },
-  ) {
-    let res = [];
-    for (const cartItem of cartItems) {
-      const product = await this.findProductById(cartItem.product_id);
-      const t = {};
-      t['product'] = product;
-      t['quantity'] = cartItem.quantity;
-      // @ts-ignore
-      res.push(t);
-    }
-    return res;
-  }
-
-  async findCart(user_id: number) {
-    const userCart = await this.findOrCreateCart(user_id);
-    const cartItems = await this.prisma.cartItem.findMany({
+  async findCart(user_id: number): Promise<CartItems[]> {
+    let userCart = await this.prisma.cart.findFirst({
       where: {
-        cart_id: userCart.id,
+        user_id: user_id,
+      },
+      select: {
+        cartItems: {
+          select: {
+            product: true,
+            quantity: true,
+          },
+          orderBy: [
+            {
+              product: {
+                name: 'asc',
+              },
+            },
+          ],
+        },
       },
     });
-    return await this.resolveCartItems(cartItems, userCart);
+    if (!userCart) {
+      userCart = await this.prisma.cart.create({
+        data: {
+          user_id: user_id,
+        },
+        select: {
+          cartItems: {
+            select: {
+              product: true,
+              quantity: true,
+            },
+          },
+        },
+      });
+    }
+    return userCart.cartItems;
   }
 
   async createProduct(
@@ -79,44 +105,49 @@ export class StoreRepository {
   async addProductToCart(
     user_id: number,
     product_id: number,
-  ): Promise<CartItem> {
-    let userCart = await this.findOrCreateCart(user_id);
-    let item = await this.prisma.cartItem.findFirst({
+  ): Promise<CartItems[]> {
+    const userCart = await this.findOrCreateCart(user_id);
+    const item = await this.prisma.cartItem.findFirst({
       where: { cart_id: userCart.id, product_id: product_id },
     });
     if (item !== null) {
-      return this.prisma.cartItem.update({
+      await this.prisma.cartItem.update({
         where: { id: item.id, cart_id: item.cart_id, product_id: product_id },
         data: {
           quantity: (item.quantity += 1),
         },
       });
+    } else {
+      await this.prisma.cartItem.create({
+        data: {
+          cart_id: userCart.id,
+          product_id: product_id,
+          quantity: 1,
+        },
+      });
     }
-    return this.prisma.cartItem.create({
-      data: {
-        cart_id: userCart.id,
-        product_id: product_id,
-        quantity: 1,
-      },
-    });
+    return this.findCart(user_id);
   }
 
-  async removeProductFromCart(user_id: number, product_id: number) {
-    let userCart = await this.findOrCreateCart(user_id);
+  async removeProductFromCart(
+    user_id: number,
+    product_id: number,
+  ): Promise<CartItems[]> {
+    const userCart = await this.findOrCreateCart(user_id);
     await this.prisma.cartItem.deleteMany({
       where: {
         cart_id: userCart.id,
         product_id: product_id,
       },
     });
-    return userCart;
+    return this.findCart(user_id);
   }
 
   async decreaseProductQuantity(
     user_id: number,
     product_id: number,
-  ): Promise<CartItem[]> {
-    let userCart = await this.findOrCreateCart(user_id);
+  ): Promise<CartItems[]> {
+    const userCart = await this.findOrCreateCart(user_id);
     const item = await this.prisma.cartItem.findFirst({
       where: {
         cart_id: userCart.id,
@@ -126,7 +157,7 @@ export class StoreRepository {
         quantity: true,
       },
     });
-    return this.prisma.cartItem.updateManyAndReturn({
+    await this.prisma.cartItem.updateManyAndReturn({
       where: {
         cart_id: userCart.id,
         product_id: product_id,
@@ -135,16 +166,17 @@ export class StoreRepository {
         quantity: item!.quantity - 1,
       },
     });
+    return this.findCart(user_id);
   }
 
-  async checkout(user_id: number) {
-    let userCart = await this.findOrCreateCart(user_id);
+  async checkout(user_id: number): Promise<CartItems[]> {
+    const userCart = await this.findOrCreateCart(user_id);
     await this.prisma.cartItem.deleteMany({
       where: {
         cart_id: userCart.id,
       },
     });
-    return userCart;
+    return this.findCart(user_id);
   }
 
   async editProduct(

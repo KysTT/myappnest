@@ -1,13 +1,28 @@
 import { Injectable } from '@nestjs/common';
 import { StoreRepository } from '@modules/store/repository/store.repository';
-import { Cart, CartItem, Product } from '@prisma/client';
+import { Product } from '@prisma/client';
+import { type CartItems } from '@modules/store/types/store-types';
+import { PaginatedProducts } from '@DTOs/store/store.dto';
 
 @Injectable()
 export class StoreService {
   constructor(private readonly storeRepository: StoreRepository) {}
 
-  async findProducts(): Promise<Product[]> {
-    return this.storeRepository.findProducts();
+  async findProducts(page: number, limit: number): Promise<PaginatedProducts> {
+    const { products, total } = await this.storeRepository.findProducts(
+      page,
+      limit,
+    );
+    const totalPages = Math.ceil(total / limit);
+    return {
+      data: products,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages,
+      },
+    };
   }
   async findProductById(product_id: number): Promise<Product | null> {
     return this.storeRepository.findProductById(product_id);
@@ -58,7 +73,7 @@ export class StoreService {
   async addProductToCart(
     user_id: number,
     product_id: number,
-  ): Promise<CartItem> {
+  ): Promise<CartItems[]> {
     return this.storeRepository.addProductToCart(user_id, product_id);
   }
 

@@ -74,7 +74,8 @@ function RenderCart() {
     onError: () => {
       return toast("Failed");
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      setCart(data);
       newData = true;
     },
   });
@@ -84,7 +85,8 @@ function RenderCart() {
     onError: () => {
       return toast("Failed");
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      setCart(data);
       newData = true;
     },
   });
@@ -94,7 +96,8 @@ function RenderCart() {
     onError: () => {
       return toast("Failed to remove product from cart");
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      setCart(data);
       newData = true;
       afterDelete = true;
     },
@@ -105,8 +108,10 @@ function RenderCart() {
     onError: () => {
       return toast("Failed to checkout");
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      setCart(data);
       newData = true;
+      afterDelete = true;
     },
   });
 
@@ -139,9 +144,9 @@ function RenderCart() {
   let total = 0;
   if (cart.length !== 0) {
     total = cart.reduce((sum, item) => {
-      const price = parseFloat(item.product.price); // Преобразуем строку в число
-      const quantity = item.quantity; // Количество уже число
-      return sum + price * quantity; // Добавляем к сумме стоимость * количество
+      const price = parseFloat(item.product.price);
+      const quantity = item.quantity;
+      return sum + price * quantity;
     }, 0);
   }
   return (

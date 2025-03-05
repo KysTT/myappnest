@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   Table,
@@ -13,22 +13,38 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button.tsx";
 import { Plus } from "lucide-react";
 import {
-  getStoreProducts,
   userRoleQueryOptions,
-  addProductToCart,
-} from "@/lib/api-nest.ts";
+  addProductToCart, getStoreProductsQuery,
+} from '@/lib/api-nest.ts';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
+
+interface StoreSearchParams {
+  page?: number;
+}
 
 function getRole() {
   const { isPending, error, data } = useQuery(userRoleQueryOptions);
   if (!isPending && !error) return data["role"];
 }
 
-async function getProducts() {
-  return await getStoreProducts();
+async function getProductsQuery(page: number, limit?: number) {
+  return await getStoreProductsQuery(page, limit);
 }
 
 export const Route = createFileRoute("/Store/")({
   component: RouteComponent,
+  validateSearch: (search: Record<string, unknown>): StoreSearchParams => {
+    return {
+      page: typeof search.page === "number" ? search.page : 1
+    };
+  }
 });
 
 function RouteComponent() {
@@ -50,11 +66,22 @@ function RouteComponent() {
 }
 
 function RenderProducts() {
+  const search = useSearch({from: '/Store/'}) as StoreSearchParams;
+  const page = search.page || 1;
+  const navigate = useNavigate({ from: "/Store" });
+
   const { isPending, error, data } = useQuery({
-    queryKey: ["getProducts"],
-    queryFn: getProducts,
+    queryKey: ["getProductsQuery", page],
+    queryFn: ()=>getProductsQuery(page),
   });
   if (error) return "Error";
+
+  const products = data?.data || [];
+  const { total, limit, totalPages } = data?.meta || {};
+
+  const handlePageChange = (newPage: number) => {
+    navigate({ search: { page: newPage } });
+  };
 
   const mutation = useMutation({
     mutationFn: addProductToCart,
@@ -106,7 +133,7 @@ function RenderProducts() {
                       </TableCell>
                     </TableRow>
                   ))
-              : data!.map(
+              : products.map(
                   // @ts-ignore
                   ({ id, name, description, stock, price }) => (
                     <TableRow key={id}>
@@ -131,6 +158,38 @@ function RenderProducts() {
           </TableBody>
         </Table>
       </div>
+      <Pagination>
+        {!isPending ?
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                onClick={() => handlePageChange(page - 1)}
+                className={page <= 1 ? 'pointer-events-none opacity-50' : ''}/>
+            </PaginationItem>
+            {
+              Array.from({length: totalPages}, (_, i) => i+1)
+                .map((pageNumber) => (
+                  <PaginationItem key={pageNumber}>
+                    <PaginationLink
+                      onClick={() => handlePageChange(pageNumber)}
+                      isActive={page === pageNumber}
+                    >
+                      {pageNumber}
+                    </PaginationLink>
+                  </PaginationItem>
+                )
+              )
+            }
+            <PaginationItem>
+              <PaginationNext
+                onClick={() => handlePageChange(page + 1)}
+              />
+            </PaginationItem>
+          </PaginationContent>
+          :
+            <PaginationContent />
+        }
+      </Pagination>
     </>
   );
 }

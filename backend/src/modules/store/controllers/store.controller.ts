@@ -1,15 +1,31 @@
-import { Body, Controller, Delete, Get, Post, Put, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Post,
+  Put,
+  Query,
+  Req,
+} from '@nestjs/common';
 import { StoreService } from '@modules/store/services/store.service';
-import { Cart, CartItem, Product } from '@prisma/client';
+import { Product } from '@prisma/client';
 import { Request } from 'express';
+import { type CartItems } from '@modules/store/types/store-types';
+import { PaginatedProducts } from '@DTOs/store/store.dto';
 
 @Controller('api/store')
 export class StoreController {
   constructor(private readonly storeService: StoreService) {}
 
   @Get()
-  async findProducts(): Promise<Product[]> {
-    return this.storeService.findProducts();
+  async findProducts(
+    @Query('page') page: string,
+    @Query('limit') limit: string,
+  ): Promise<PaginatedProducts> {
+    const pageInt = parseInt(page) > 0 ? parseInt(page) : 1;
+    const limitInt = parseInt(limit) > 0 ? parseInt(limit) : 10;
+    return this.storeService.findProducts(pageInt, limitInt);
   }
 
   @Get('cart')
@@ -21,7 +37,7 @@ export class StoreController {
   async addProductToCart(
     @Req() req: Request,
     @Body('product_id') product_id: number,
-  ): Promise<CartItem> {
+  ): Promise<CartItems[]> {
     return this.storeService.addProductToCart(
       parseInt(req.cookies['id']),
       product_id,
@@ -43,7 +59,7 @@ export class StoreController {
   async subtractFromCart(
     @Req() req: Request,
     @Body('product_id') product_id: number,
-  ): Promise<CartItem[]> {
+  ): Promise<CartItems[]> {
     return this.storeService.decreaseProductQuantity(
       parseInt(req.cookies['id']),
       product_id,

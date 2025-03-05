@@ -171,6 +171,20 @@ export async function getStoreProducts() {
   return response.json();
 }
 
+export async function getStoreProductsQuery(page: number, limit?: number) {
+  const params = new URLSearchParams();
+  params.append('page', page.toString());
+  if (limit)
+    params.append('limit', limit.toString());
+
+  const url = `${BASE_URL}/store?${params.toString()}`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error("Something went wrong");
+  }
+  return await response.json();
+}
+
 export async function getUserCart() {
   const response = await fetch(`${BASE_URL}/store/cart`, {
     method: "GET",

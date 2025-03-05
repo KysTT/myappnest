@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import {
   userQueryOptions,
   changeUserRole,
@@ -75,7 +75,18 @@ function Profile() {
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={() => logoutUser()}>Logout</Button>
+          <Button
+            onClick={() => {
+              // @ts-ignore
+              logoutUser().then(
+                redirect({
+                  to: "/",
+                }),
+              );
+            }}
+          >
+            Logout
+          </Button>
         </CardFooter>
       </Card>
     </>

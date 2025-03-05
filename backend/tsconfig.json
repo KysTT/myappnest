@@ -12,8 +12,9 @@
     "baseUrl": "./src",
     "paths": {
       "@/*": ["./src/*"],
-      "@modules/*" : ["./modules/*"],
-      "@utils/*" : ["./utils/*"]
+      "@modules/*": ["./modules/*"],
+      "@utils/*": ["./utils/*"],
+      "@DTOs/*": ["./DTOs/*"]
     },
     "incremental": true,
     "skipLibCheck": true,
