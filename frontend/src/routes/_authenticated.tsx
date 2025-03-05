@@ -92,9 +92,9 @@ const Login = () => {
             validators={{
               onChangeAsync: ({ value }) =>
                 !value
-                  ? "Email is required"
-                  : value.length < 3
-                    ? "Name must be at least 3 characters"
+                  ? 'Email is required'
+                  : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+                    ? 'Invalid email format'
                     : undefined,
             }}
             children={(field) => {
@@ -188,9 +188,9 @@ const Login = () => {
             validators={{
               onChangeAsync: ({ value }) =>
                 !value
-                  ? "Email is required"
-                  : value.length < 3
-                    ? "Name must be at least 3 characters"
+                  ? 'Email is required'
+                  : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+                    ? 'Invalid email format'
                     : undefined,
             }}
             children={(field) => {

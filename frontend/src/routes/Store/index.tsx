@@ -183,7 +183,7 @@ function RenderProducts() {
             <PaginationItem>
               <PaginationNext
                 onClick={() => handlePageChange(page + 1)}
-              />
+                className={page >= totalPages ? 'pointer-events-none opacity-50' : ''}/>
             </PaginationItem>
           </PaginationContent>
           :

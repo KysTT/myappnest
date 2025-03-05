@@ -19,6 +19,8 @@ export class UserController {
     response.cookie('id', user.id.toString(), {
       sameSite: 'lax',
       maxAge: 1000 * 60 * 60 * 24,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
     });
     return user;
   }
@@ -34,6 +36,8 @@ export class UserController {
       response.cookie('id', user.id.toString(), {
         sameSite: 'lax',
         maxAge: 1000 * 60 * 60 * 24,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
       });
       return response.status(200).json(
         new GenericResponse<User | null>(user, {

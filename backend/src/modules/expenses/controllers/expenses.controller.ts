@@ -44,17 +44,18 @@ export class ExpenseController {
   @Delete(':id')
   async deleteExpense(
     @Req() req: Request,
-    @Param() params: any,
+    @Param('id') expense_id: number,
   ): Promise<GenericResponse<Expense>> {
-    return new GenericResponse<Expense>(
-      await this.expensesService.deleteExpense(
+    try {
+      const res = await this.expensesService.deleteExpense(
         parseInt(req.cookies['id']),
-        parseInt(params.id),
-      ),
-      {
-        clientKnownRequestError: 'expense was not deleted',
+        expense_id,
+      );
+      return new GenericResponse<Expense>(res, {
         success: 'expense was deleted',
-      },
-    );
+      });
+    } catch (e) {
+      throw e;
+    }
   }
 }

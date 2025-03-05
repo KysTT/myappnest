@@ -16,6 +16,7 @@ import {
 
 import * as React from "react";
 import { createExpense } from "@/lib/api-nest.ts";
+import { useQueryClient } from '@tanstack/react-query';
 
 export const Route = createFileRoute(
   "/_authenticated/ExpensesTracker/createExpense",
@@ -24,6 +25,7 @@ export const Route = createFileRoute(
 });
 
 function CreateExpense() {
+  const queryClient = useQueryClient();
   const [date, setDate] = React.useState<Date>();
   let currDate = new Date().toString();
   currDate = currDate.slice(0, currDate.search(":") - 2);
@@ -37,6 +39,7 @@ function CreateExpense() {
       const res = await createExpense(value);
       if (!res["id"]) return toast("Bad request");
       form.reset();
+      await queryClient.invalidateQueries({ queryKey: ['getAllExpenses'] });
       return toast("Expense has been created");
     },
   });

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@modules/database/services/prisma.service';
 import { Expense } from '@prisma/client';
 
@@ -31,23 +31,22 @@ export class ExpensesRepository {
   }
 
   async findTotalSpent(userId: number): Promise<number> {
-    const expenses = await this.findExpenses(userId);
-    return expenses.reduce(
-      (acc, cur) => acc + parseInt(cur.amount.toString()),
-      0,
-    );
+    const result = await this.prisma.expense.aggregate({
+      where: { user_id: userId },
+      _sum: { amount: true },
+    });
+    return Number(result._sum.amount) || 0;
   }
 
   async deleteExpense(userId: number, expenseId: number): Promise<Expense> {
-    try {
-      return await this.prisma.expense.delete({
-        where: {
-          id: expenseId,
-          user_id: userId,
-        },
-      });
-    } catch (e) {
-      return e;
+    const expense = await this.prisma.expense.findUnique({
+      where: { id: expenseId, user_id: userId },
+    });
+    if (!expense) {
+      throw new NotFoundException('Expense not found');
     }
+    return this.prisma.expense.delete({
+      where: { id: expenseId },
+    });
   }
 }

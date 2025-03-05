@@ -2,6 +2,7 @@ import { ConflictException, Injectable } from '@nestjs/common';
 import { PrismaService } from '@modules/database/services/prisma.service';
 import { User } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UserRepository {
@@ -43,9 +44,10 @@ export class UserRepository {
     email: string,
     password: string,
   ): Promise<User> {
+    const hashedPassword = await bcrypt.hash(password, 10);
     try {
       return await this.prisma.user.create({
-        data: { name, email, password },
+        data: { name, email, password: hashedPassword },
       });
     } catch (e) {
       if (e instanceof PrismaClientKnownRequestError) {
@@ -56,15 +58,10 @@ export class UserRepository {
   }
 
   async loginUser(email: string, password: string): Promise<User | null> {
-    try {
-      return await this.prisma.user.findFirst({
-        where: {
-          email: email,
-          password: password,
-        },
-      });
-    } catch (e) {
-      return e;
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (user && (await bcrypt.compare(password, user.password))) {
+      return user;
     }
+    return null;
   }
 }

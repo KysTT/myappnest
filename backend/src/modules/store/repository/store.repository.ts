@@ -107,25 +107,19 @@ export class StoreRepository {
     product_id: number,
   ): Promise<CartItems[]> {
     const userCart = await this.findOrCreateCart(user_id);
-    const item = await this.prisma.cartItem.findFirst({
-      where: { cart_id: userCart.id, product_id: product_id },
+    await this.prisma.cartItem.upsert({
+      where: {
+        cart_id_product_id: { cart_id: userCart.id, product_id: product_id },
+      },
+      update: {
+        quantity: { increment: 1 },
+      },
+      create: {
+        cart_id: userCart.id,
+        product_id: product_id,
+        quantity: 1,
+      },
     });
-    if (item !== null) {
-      await this.prisma.cartItem.update({
-        where: { id: item.id, cart_id: item.cart_id, product_id: product_id },
-        data: {
-          quantity: (item.quantity += 1),
-        },
-      });
-    } else {
-      await this.prisma.cartItem.create({
-        data: {
-          cart_id: userCart.id,
-          product_id: product_id,
-          quantity: 1,
-        },
-      });
-    }
     return this.findCart(user_id);
   }
 
